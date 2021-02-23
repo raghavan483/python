@@ -1,0 +1,30 @@
+version: 0.2
+env:
+  secrets-manager:
+    ECR_REPO_URL: "ECRTESTING1"
+    ECR_REPO_NAME: "ECRTESTING1"
+    DOCKER_IMAGE_NAME: "ECRTESTING1"
+    REGION: "ECRTESTING1"
+    destImage: "ECRTESTING1"
+phases:
+  pre_build:
+    commands:
+      - destImage=$ECR_REPO_URL/$ECR_REPO_NAME:$DOCKER_IMAGE_NAME
+      - docker pull $DOCKER_IMAGE_NAME
+    finally:
+      - echo This always runs even if the update or install command fails 
+  build:
+    commands:
+      - echo Build started on `date`
+      - $(aws ecr get-login --region $REGION --no-include-email)
+      - docker tag $DOCKER_IMAGE_NAME $destImage
+      - docker push $destImage
+    finally:
+      - echo tag completed
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - aws ecr describe-image-scan-findings --repository-name $ECR_REPO_NAME --image-id imageTag=$DOCKER_IMAGE_NAME --region $REGION > scan.json
+      - cat scan.json
+    finally:
+      - echo image reports generated.
